@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "spunky-red-nachos",
+    "slug": "snack-f4b28c91-f616-469b-ab82-e97cba8489f1",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.goodguytushar.snackf4b28c91f616469bab82e97cba8489f1"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f66c0676-2a8d-41e2-a1a6-be9af948adc9"
+      }
+    }
+  }
+}
