@@ -11,8 +11,8 @@ Built with **Expo**, connected to a backend [`gemini-mcq-generator`](https://gem
 ## 📥 Download and Install
 
 ### 1. Download the APK
-Get the latest APK: [MCQ Practice v1.0.0](#)  
-*(replace `https://drive.google.com/file/d/1FcDRrB8WGcNGN7EJ79TEG2jYyqvPo2Ec/view?usp=drive_link` with your GitHub release URL or Google Drive link)*
+Get the latest APK: [MCQ Practice v1.0.0](https://drive.google.com/file/d/1FcDRrB8WGcNGN7EJ79TEG2jYyqvPo2Ec/view?usp=drive_link)  
+
 
 ### 2. Enable Unknown Sources
 1. On your Android phone, go to **Settings > About Phone**.  
