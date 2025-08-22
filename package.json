@@ -1,5 +1,7 @@
 {
+  "name": "my-mcq-app",
   "license": "0BSD",
+  "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -12,14 +14,11 @@
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.5",
-    "react-native-paper": "4.9.2",
-    "@expo/vector-icons": "^14.1.0",
-    "expo-build-properties": "~0.14.8"
+    "expo-document-picker": "~13.1.6",
+    "react-native-safe-area-context": "5.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
   },
-  "private": true,
-  "name": "expo-test-app",
-  "version": "1.0.0"
+  "private": true
 }

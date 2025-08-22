@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "spunky-red-nachos",
-    "slug": "snack-f4b28c91-f616-469b-ab82-e97cba8489f1",
+    "name": "my-mcq-app",
+    "slug": "my-mcq-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,29 +21,15 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.goodguytushar.snackf4b28c91f616469bab82e97cba8489f1"
+      "package": "com.goodguytushar.mymcqapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "f66c0676-2a8d-41e2-a1a6-be9af948adc9"
+        "projectId": "8c131e62-570e-47eb-a603-0e3286efc166"
       }
-    },
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0",
-            "minSdkVersion": 24,
-            "extraProguardRules": "-keep class com.stripe.** { *; }"
-          }
-        }
-      ]
-    ]
+    }
   }
 }

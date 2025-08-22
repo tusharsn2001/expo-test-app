@@ -1,5 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
-import { SafeAreaView, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, Button, Platform } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function App() {
   const [pasteText, setPasteText] = useState('');
@@ -8,60 +10,45 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showReview, setShowReview] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  /**
-   * Custom button component for consistent styling.
-   * @param {object} props
-   * @param {string} props.title - The text to display on the button.
-   * @param {Function} props.onPress - The function to call when the button is pressed.
-   * @param {boolean} [props.disabled=false] - Whether the button is disabled.
-   * @param {object} [props.style] - Custom styles for the button.
-   */
   const CustomButton = ({ title, onPress, disabled = false, style = {} }) => (
     <TouchableOpacity
       style={[styles.button, disabled && styles.buttonDisabled, style]}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>{title}</Text>
+      {loading ? (
+        <ActivityIndicator color="#FFFFFF" />
+      ) : (
+        <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>{title}</Text>
+      )}
     </TouchableOpacity>
   );
 
-  /**
-   * Parses raw text into an array of MCQ objects.
-   * The parser is tolerant to various formats, including:
-   * - Questions separated by one or more blank lines.
-   * - Answers explicitly stated with "Answer: A" or similar.
-   * - Answers marked with a '*' at the beginning of the correct option.
-   */
   function parseMCQs(text) {
-    // Normalize line endings and split into question blocks by 2 or more newlines
     const normalized = text.replace(/\r/g, '').trim();
     const blocks = normalized.split(/\n{2,}/).filter(Boolean);
-
     const parsedQuestions = [];
 
     blocks.forEach(block => {
       const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) return; // A question needs at least a question line and one option line
+      if (lines.length < 2) return;
 
       let questionText = '';
       const options = [];
       let answerIndex = -1;
       let tempAnswerLine = null;
 
-      // Find the answer line first and store it separately
       const answerLineIndex = lines.findIndex(l => /^(Answer|Ans)[:\s-]/i.test(l));
       if (answerLineIndex !== -1) {
         tempAnswerLine = lines[answerLineIndex];
-        // Remove the answer line from the lines array to prevent it from being parsed as an option
         lines.splice(answerLineIndex, 1);
       }
 
-      // Determine the question and options
       let firstOptionIndex = -1;
       for (let i = 0; i < lines.length; i++) {
-        // Regex to find options labeled with A., A), 1., 1) or an asterisk
         if (/^([A-D]|[1-4])[\s\.\)]|^[\*]/.test(lines[i].trim())) {
           firstOptionIndex = i;
           break;
@@ -69,31 +56,25 @@ export default function App() {
       }
 
       if (firstOptionIndex === -1) {
-        // Fallback: Assume the first line is the question, the rest are options
         questionText = lines[0] || '';
         for (let i = 1; i < lines.length; i++) {
           options.push(lines[i].trim());
         }
       } else {
-        // Normal case: Question is the text before the first option
         questionText = lines.slice(0, firstOptionIndex).join(' ').trim();
         for (let i = firstOptionIndex; i < lines.length; i++) {
           let optionText = lines[i].trim();
-          
-          // Check for an inline asterisk marking the correct answer
           if (optionText.startsWith('*')) {
             answerIndex = options.length;
-            optionText = optionText.substring(1).trim(); // Remove the asterisk
+            optionText = optionText.substring(1).trim();
           }
-          // Clean up option labels like A., 1)
           optionText = optionText.replace(/^([A-D]|[1-4])[\s\.\)]/, '').trim();
           options.push(optionText);
         }
       }
 
-      // Process the explicit answer line if found
       if (tempAnswerLine) {
-        const answerMatch = tempAnswerLine.match(/([A-D]|[1-4])/i);
+        const answerMatch = tempAnswerLine.match(/([A-D]|[(lang)1-4])/i);
         if (answerMatch) {
           const val = answerMatch[1].toUpperCase();
           if (/[A-D]/.test(val)) {
@@ -104,7 +85,6 @@ export default function App() {
         }
       }
 
-      // Push the parsed question if it's valid
       if (questionText && options.length > 0) {
         parsedQuestions.push({ question: questionText, options: options, answerIndex });
       }
@@ -113,32 +93,138 @@ export default function App() {
     return parsedQuestions;
   }
 
-  function handleParse() {
-    if (!pasteText.trim()) {
+  const handleParse = (inputText = pasteText) => {
+    if (!inputText.trim()) {
       Alert.alert('Paste text first', 'Please paste MCQs into the text box.');
       return;
     }
-    const parsed = parseMCQs(pasteText);
-    if (parsed.length === 0) {
-      Alert.alert('No questions found', 'The parser did not find any question blocks. Make sure questions and options are separated by a blank line.');
+    setLoading(true);
+    try {
+      const parsed = parseMCQs(inputText);
+      if (parsed.length === 0) {
+        Alert.alert('No questions found', 'The parser did not find any question blocks. Make sure questions and options are separated by a blank line.');
+        return;
+      }
+
+      const withoutAnswer = parsed.filter(p => p.answerIndex === -1).length;
+      setQuestions(parsed);
+
+      if (withoutAnswer > 0) {
+        Alert.alert(
+          'Parsed with warnings',
+          `${parsed.length} questions parsed. ${withoutAnswer} question(s) had no detected correct answer and will be excluded from the test.`
+        );
+      } else {
+        Alert.alert(
+          'Parsed',
+          `${parsed.length} questions parsed.`
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to parse questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickDocument = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        Alert.alert('Error', 'File uploads are not supported in web environments. Please test on a mobile device or emulator.');
+        return;
+      }
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        console.log('Selected file:', file);
+
+        if (!file.uri) {
+          throw new Error('File URI is missing');
+        }
+        if (!file.mimeType || file.mimeType !== 'application/pdf') {
+          console.warn('Invalid or missing MIME type, defaulting to application/pdf');
+        }
+        if (!file.name) {
+          console.warn('File name missing, defaulting to document.pdf');
+        }
+
+        uploadFile(file);
+      } else {
+        Alert.alert('Error', 'No file selected');
+      }
+    } catch (error) {
+      console.error('Document picker error:', error.message);
+      Alert.alert('Error', 'Failed to pick document: ' + error.message);
+    }
+  };
+
+  const uploadFile = async (file) => {
+    try {
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name || 'document.pdf',
+        type: file.mimeType || 'application/pdf',
+      });
+
+      console.log('FormData prepared:', {
+        uri: file.uri,
+        name: file.name || 'document.pdf',
+        type: file.mimeType || 'application/pdf',
+      });
+
+      const response = await fetch('https://gemini-mcq-generator.onrender.com/api/generate-questions', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+
+      const questions = await response.json();
+
+      if (!questions || questions.error) {
+        throw new Error(questions.error || 'No questions generated from the PDF');
+      }
+
+      handleTextExtracted(questions);
+    } catch (error) {
+      console.error('Upload error:', error.message);
+      Alert.alert('Error', 'Failed to process PDF: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleTextExtracted = (extractedQuestions) => {
+    if (!extractedQuestions || extractedQuestions.length === 0) {
+      Alert.alert('Error', 'No questions generated from the PDF.');
       return;
     }
-
-    const withoutAnswer = parsed.filter(p => p.answerIndex === -1).length;
-    setQuestions(parsed);
-
+    const withoutAnswer = extractedQuestions.filter(q => q.answerIndex === -1).length;
+    setQuestions(extractedQuestions);
+    setPasteText('');
     if (withoutAnswer > 0) {
       Alert.alert(
-        'Parsed with warnings',
-        `${parsed.length} questions parsed. ${withoutAnswer} question(s) had no detected correct answer and will be excluded from the test.`
+        'Generated with warnings',
+        `${extractedQuestions.length} questions generated from PDF. ${withoutAnswer} question(s) had no detected correct answer and will be excluded from the test.`
       );
     } else {
       Alert.alert(
-        'Parsed',
-        `${parsed.length} questions parsed.`
+        'Generated',
+        `${extractedQuestions.length} questions generated from PDF.`
       );
     }
-  }
+  };
 
   function startTest() {
     const valid = questions.filter(q => q.answerIndex >= 0);
@@ -187,7 +273,7 @@ export default function App() {
 
         {!inTest && !showReview && (
           <View style={styles.box}>
-            <Text style={styles.subtitle}>Paste MCQs</Text>
+            <Text style={styles.subtitle}>Paste MCQs or Upload PDF</Text>
             <TextInput
               value={pasteText}
               onChangeText={setPasteText}
@@ -195,7 +281,14 @@ export default function App() {
               placeholder={'Paste questions here. Separate questions by a blank line. Use "Answer: A" or mark the correct option with a "*".'}
               style={styles.input}
             />
-            <CustomButton title='Parse & Preview' onPress={handleParse} />
+            <CustomButton title='Parse & Preview' onPress={handleParse} disabled={loading} />
+            <View style={{ marginTop: 10 }}>
+              <Button
+                title={uploading ? 'Uploading...' : 'Select PDF File'}
+                onPress={pickDocument}
+                disabled={uploading}
+              />
+            </View>
 
             {questions.length > 0 && (
               <View style={{ marginTop: 16 }}>
@@ -210,7 +303,7 @@ export default function App() {
                   </View>
                 ))}
                 <View style={{ marginTop: 12 }}>
-                  <CustomButton title='Start Mock Test' onPress={startTest} />
+                  <CustomButton title='Start Mock Test' onPress={startTest} disabled={loading} />
                 </View>
               </View>
             )}
